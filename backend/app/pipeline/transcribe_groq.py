@@ -31,17 +31,30 @@ class GroqTranscriber:
     def __init__(self):
         self._client: Groq | None = None
 
-    def _get_client(self) -> Groq:
-        if self._client is None:
-            api_key = settings.GROQ_API_KEY
-            if not api_key:
-                raise ValueError(
-                    "GROQ_API_KEY is not set. "
-                    "Add it to your .env file or set TRANSCRIBE_BACKEND=local to use the local model."
-                )
-            self._client = Groq(api_key=api_key)
-            logger.info("Groq client initialized.")
-        return self._client
+    def _get_keys(self) -> list[str]:
+        api_key_str = settings.GROQ_API_KEY
+        if not api_key_str:
+            raise ValueError(
+                "GROQ_API_KEY is not set. "
+                "Add it to your .env file or set TRANSCRIBE_BACKEND=local to use the local model."
+            )
+        return [k.strip() for k in api_key_str.split(",") if k.strip()]
+
+    def _execute_with_failover(self, operation_fn):
+        """
+        Executes a Groq API function with automatic failover/load-balancing
+        across multiple comma-separated GROQ_API_KEYs.
+        """
+        keys = self._get_keys()
+        last_error = None
+        for api_key in keys:
+            try:
+                client = Groq(api_key=api_key)
+                return operation_fn(client)
+            except Exception as e:
+                logger.error(f"Groq API key starting with '{api_key[:8]}' failed: {e}")
+                last_error = e
+        raise last_error or RuntimeError("All configured Groq API keys failed.")
 
     def _transcribe_sync(self, audio_path: str, source_lang: str | None = "ta") -> tuple[list[dict], str]:
         """
