@@ -31,6 +31,12 @@ class GroqTranscriber:
     def __init__(self):
         self._client: Groq | None = None
 
+    def _get_client(self) -> Groq:
+        if not self._client:
+            keys = self._get_keys()
+            self._client = Groq(api_key=keys[0])
+        return self._client
+
     def _get_keys(self) -> list[str]:
         api_key_str = settings.GROQ_API_KEY
         if not api_key_str:
