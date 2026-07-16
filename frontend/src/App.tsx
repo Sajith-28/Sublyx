@@ -46,7 +46,7 @@ type AppAuth = {
   user: AppUser | null;
 };
 
-const API_BASE = "";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
 const toProjectCaptions = (items: CaptionSegment[]) =>
   items.map((segment) => ({

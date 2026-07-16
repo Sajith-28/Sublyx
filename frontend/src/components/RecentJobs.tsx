@@ -16,7 +16,7 @@ interface RecentJobsProps {
   onSelectJob: (jobId: string) => void;
 }
 
-const API_BASE = "";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
 // Helper to map codes to display names
 const getLangLabel = (code: string) => {
