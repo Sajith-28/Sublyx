@@ -183,8 +183,16 @@ class GroqTranscriber:
             for seg in segments:
                 seg["caption_text"] = seg.get("raw_text", seg.get("text", ""))
             return segments
+            
+        # 2. If target is Tanglish, use the local dictionary-based transliterator
+        if target_lang_lower == "tanglish":
+            from app.pipeline.transliterate import transliterator
+            for seg in segments:
+                raw_text = seg.get("raw_text", seg.get("text", ""))
+                seg["caption_text"] = transliterator.transliterate(raw_text)
+            return segments
 
-        # 2. For Tanglish and other languages, process using Llama 3 with enhanced Chennai Tamil slang understanding
+        # 3. For other languages, process using Llama 3 with enhanced Chennai Tamil slang understanding
         to_translate = []
         for idx, seg in enumerate(segments):
             raw = seg.get("raw_text", seg.get("text", ""))
@@ -196,45 +204,28 @@ class GroqTranscriber:
         logger.info(f"Translating {len(segments)} segments to '{target_lang}' using Llama 3...")
         client = self._get_client()
 
-        # Detailed vocabulary hints for Llama 3 to ensure precise translation/transliteration
-        if target_lang_lower == "tanglish":
-            system_prompt = (
-                f"You are a professional captioner specializing in Chennai Tanglish.\n"
-                f"Your task is to TRANSLITERATE the transcript segments from Tamil into Tanglish (Tamil written in English script).\n\n"
-                f"Context: The source text is spoken in colloquial Chennai Tamil. Keep the exact colloquial pronunciation.\n"
-                f"Example: 'vanakkam da' not 'vanakkam ta', 'epdi irukka' not 'eppadi irukkiraai', 'super machi' etc.\n\n"
-                f"Rules:\n"
-                f"1. DO NOT translate to English. TRANSLITERATE phonetically into Tanglish exactly as it sounds casually.\n"
-                f"2. Keep English words in English spelling (e.g., 'super', 'okay', 'mass').\n"
-                f"3. STRICTLY keep the exact same number of items and match the 'index' fields in the output.\n"
-                f"4. EXTREME PRECISION REQUIRED. Do not hallucinate. Output exactly the same meaning phonetically.\n"
-                f"5. Output MUST be a valid JSON object containing an array of objects under the key 'translations', where each object has keys: 'index' and 'text'. Do not include markdown code block formatting.\n\n"
-                f"Example Output Format:\n"
-                f'{{"translations": [{{"index": 0, "text": "transliterated tanglish text here"}}]}}'
-            )
-        else:
-            system_prompt = (
-                f"You are a professional translator and captioner.\n"
-                f"Your task is to translate transcript segments from colloquial Chennai Tamil into the target language: '{target_lang}'.\n\n"
-                f"Context: The source text is spoken in a casual, colloquial Chennai Tamil dialect. "
-                f"It often includes code-mixed English words, local slang, and specific phrasing. Use these translation rules:\n"
-                f"- 'மச்சி' / 'மச்சா' / 'மாப்ள' / 'தல' -> 'buddy' / 'brother' / 'friend'\n"
-                f"- 'செம' / 'மாஸ்' / 'தூள்' / 'கெத்து' -> 'awesome' / 'cool' / 'great' / 'stylish'\n"
-                f"- 'ரொம்ப' / 'ரொம்பவும்' -> 'very' / 'so much'\n"
-                f"- 'பண்றேன்' / 'செய்றேன்' -> 'doing' / 'making'\n"
-                f"- 'என்ன பண்ற' / 'என்ன பண்றே' -> 'what are you doing?'\n"
-                f"- 'கடுப்பு' / 'வெறி' -> 'annoyed' / 'angry'\n"
-                f"- 'சாப்ட்டியா' / 'சாப்பிட்டியா' -> 'did you eat?'\n"
-                f"- 'போயிட்டு வரேன்' / 'வரேன்' -> 'goodbye' / 'see you'\n\n"
-                f"Rules:\n"
-                f"1. Translate accurately while matching the exact meaning, style, and casual tone of the speaker.\n"
-                f"2. Keep the translation conversational, concise, and formatted for video subtitles.\n"
-                f"3. EXTREME PRECISION REQUIRED for technical and medical terms. Double-check your spelling for all scientific/medical words (e.g., output 'Gynecomastia', not 'Gynogomastia').\n"
-                f"4. STRICTLY keep the exact same number of items and match the 'index' fields in the output.\n"
-                f"5. Output MUST be a valid JSON object containing an array of objects under the key 'translations', where each object has keys: 'index' and 'text'. Do not include markdown code block formatting.\n\n"
-                f"Example Output Format:\n"
-                f'{{"translations": [{{"index": 0, "text": "translated text here"}}]}}'
-            )
+        system_prompt = (
+            f"You are a professional translator and captioner.\n"
+            f"Your task is to translate transcript segments from colloquial Chennai Tamil into the target language: '{target_lang}'.\n\n"
+            f"Context: The source text is spoken in a casual, colloquial Chennai Tamil dialect. "
+            f"It often includes code-mixed English words, local slang, and specific phrasing. Use these translation rules:\n"
+            f"- 'மச்சி' / 'மச்சா' / 'மாப்ள' / 'தல' -> 'buddy' / 'brother' / 'friend'\n"
+            f"- 'செம' / 'மாஸ்' / 'தூள்' / 'கெத்து' -> 'awesome' / 'cool' / 'great' / 'stylish'\n"
+            f"- 'ரொம்ப' / 'ரொம்பவும்' -> 'very' / 'so much'\n"
+            f"- 'பண்றேன்' / 'செய்றேன்' -> 'doing' / 'making'\n"
+            f"- 'என்ன பண்ற' / 'என்ன பண்றே' -> 'what are you doing?'\n"
+            f"- 'கடுப்பு' / 'வெறி' -> 'annoyed' / 'angry'\n"
+            f"- 'சாப்ட்டியா' / 'சாப்பிட்டியா' -> 'did you eat?'\n"
+            f"- 'போயிட்டு வரேன்' / 'வரேன்' -> 'goodbye' / 'see you'\n\n"
+            f"Rules:\n"
+            f"1. Translate accurately while matching the exact meaning, style, and casual tone of the speaker.\n"
+            f"2. Keep the translation conversational, concise, and formatted for video subtitles.\n"
+            f"3. EXTREME PRECISION REQUIRED for technical and medical terms. Double-check your spelling for all scientific/medical words (e.g., output 'Gynecomastia', not 'Gynogomastia').\n"
+            f"4. STRICTLY keep the exact same number of items and match the 'index' fields in the output.\n"
+            f"5. Output MUST be a valid JSON object containing an array of objects under the key 'translations', where each object has keys: 'index' and 'text'. Do not include markdown code block formatting.\n\n"
+            f"Example Output Format:\n"
+            f'{{"translations": [{{"index": 0, "text": "translated text here"}}]}}'
+        )
 
         try:
             import json
