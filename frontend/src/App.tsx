@@ -255,7 +255,7 @@ const AppInner: React.FC = () => {
                 <Film size={18} className="text-white" />
               </div>
               <h1 className="text-lg font-bold gradient-text-brand tracking-tight">
-                CaptionAI
+                Sublyx
               </h1>
               <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary-500/10 text-primary-400 border border-primary-500/20">
                 <Zap size={10} className="mr-1" />
@@ -407,7 +407,7 @@ const AppInner: React.FC = () => {
         <footer className="border-t border-white/[0.04] py-6 mt-auto">
           <div className="max-w-7xl mx-auto px-4 text-center">
             <p className="text-slate-600 text-sm flex items-center justify-center space-x-2">
-              <span className="gradient-text-brand font-semibold">CaptionAI</span>
+              <span className="gradient-text-brand font-semibold">Sublyx</span>
               <span className="w-1 h-1 rounded-full bg-slate-700" />
               <span>AI-Powered Multi-Language Video Captioning</span>
             </p>

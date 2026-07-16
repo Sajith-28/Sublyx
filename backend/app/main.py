@@ -50,7 +50,7 @@ app.include_router(jobs_router)
 def read_root():
     return {
         "status": "healthy",
-        "service": "CaptionAI Backend",
+        "service": "Sublyx Backend",
         "whisper_model": settings.WHISPER_MODEL,
         "database_type": "mongodb" if db_mgr.use_mongo else "sqlite"
     }

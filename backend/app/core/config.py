@@ -5,10 +5,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     # MongoDB settings (optional, defaults to local SQLite if empty)
     MONGO_URI: str = ""
-    MONGO_DB_NAME: str = "captionai"
+    MONGO_DB_NAME: str = "sublyx"
 
     # SQLite fallback settings
-    SQLITE_DB_PATH: str = "storage/captionai.db"
+    SQLITE_DB_PATH: str = "storage/sublyx.db"
 
     # File storage paths
     STORAGE_DIR: str = "storage"
