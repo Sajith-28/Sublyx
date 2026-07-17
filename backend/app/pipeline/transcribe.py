@@ -23,8 +23,16 @@ class WhisperTranscriber:
             )
             logger.info("Whisper model loaded successfully.")
 
-    def _transcribe_chunk_sync(self, audio_chunk: np.ndarray, chunk_offset_sec: float, locked_lang: str | None) -> tuple[list[dict], str]:
+    def _transcribe_chunk_sync(
+        self, 
+        audio_chunk: np.ndarray, 
+        chunk_offset_sec: float, 
+        locked_lang: str | None,
+        target_lang: str | None = None
+    ) -> tuple[list[dict], str]:
         self.load_model()
+        
+        task = "translate" if target_lang and target_lang.lower().strip() == "english" else "transcribe"
         
         # Transcribe the audio slice
         segments, info = self.model.transcribe(
@@ -34,7 +42,8 @@ class WhisperTranscriber:
             word_timestamps=True,
             vad_filter=False,  # Already chunked using VAD
             condition_on_previous_text=True,
-            language=locked_lang
+            language=locked_lang,
+            task=task
         )
         
         chunk_segments = []
@@ -68,7 +77,8 @@ class WhisperTranscriber:
         self, 
         audio_path: str, 
         on_progress=None,
-        source_lang: str | None = "ta"
+        source_lang: str | None = "ta",
+        target_lang: str | None = None
     ) -> list[dict]:
         """
         Transcribes audio using VAD chunking.
@@ -156,7 +166,8 @@ class WhisperTranscriber:
                     self._transcribe_chunk_sync, 
                     chunk_audio, 
                     offset_sec, 
-                    locked_lang
+                    locked_lang,
+                    target_lang
                 )
                 
                 all_segments.extend(chunk_segs)

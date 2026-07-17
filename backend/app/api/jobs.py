@@ -65,7 +65,8 @@ async def run_pipeline(
         raw_segments = await active_transcriber.transcribe_audio(
             audio_path,
             on_progress=on_progress,
-            source_lang=source_lang
+            source_lang=source_lang,
+            target_lang=target_lang
         )
         
         # 3. Translate/Transliterate
@@ -108,8 +109,11 @@ async def run_pipeline(
         # Process translation
         target_lang_lower = target_lang.lower()
         if target_lang_lower != "tamil":
-            # If Groq API key is available, run Llama 3 translation
-            if settings.GROQ_API_KEY:
+            # If target is English, we already used Whisper native translation (no need to translate again)
+            if target_lang_lower == "english":
+                pass
+            # If Groq API key is available, run Llama 3 translation for other languages (French, Spanish, etc.)
+            elif settings.GROQ_API_KEY:
                 from app.pipeline.transcribe_groq import groq_transcriber
                 try:
                     processed_segments = await loop.run_in_executor(

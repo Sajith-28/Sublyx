@@ -62,7 +62,12 @@ class GroqTranscriber:
                 last_error = e
         raise last_error or RuntimeError("All configured Groq API keys failed.")
 
-    def _transcribe_sync(self, audio_path: str, source_lang: str | None = "ta") -> tuple[list[dict], str]:
+    def _transcribe_sync(
+        self, 
+        audio_path: str, 
+        source_lang: str | None = "ta",
+        target_lang: str | None = None
+    ) -> tuple[list[dict], str]:
         """
         Blocking call to Groq Whisper API.
         Returns (segments, detected_language).
@@ -74,8 +79,8 @@ class GroqTranscriber:
                 f"25 MB limit. Use TRANSCRIBE_BACKEND=local for long audio files."
             )
 
-        logger.info(f"Sending audio to Groq Whisper API ({file_size / 1024 / 1024:.1f} MB)...")
         client = self._get_client()
+        is_english_target = target_lang and target_lang.lower().strip() == "english"
 
         # Chennai Tamil prompt — tells Whisper exactly what kind of speech to expect.
         # This dramatically improves recognition of colloquial Tamil words, slang,
@@ -93,16 +98,27 @@ class GroqTranscriber:
         lang_code = None if source_lang == "detect" else source_lang
 
         with open(audio_path, "rb") as audio_file:
-            transcription = client.audio.transcriptions.create(
-                file=audio_file,
-                model=GROQ_WHISPER_MODEL,
-                response_format="verbose_json",  # Required for timestamped segments
-                language=lang_code,               # Force language code or use None for auto-detect
-                prompt=tamil_prompt if lang_code == "ta" else None, # Guide Whisper if Tamil is selected
-                temperature=0.0,                  # Force deterministic timings to prevent drift/hallucination
-            )
+            if is_english_target:
+                logger.info(f"Sending audio to Groq Whisper Translations API ({file_size / 1024 / 1024:.1f} MB)...")
+                transcription = client.audio.translations.create(
+                    file=audio_file,
+                    model=GROQ_WHISPER_MODEL,
+                    response_format="verbose_json",  # Required for timestamped segments
+                    temperature=0.0,                  # Force deterministic timings to prevent drift
+                )
+                detected_language = "en"
+            else:
+                logger.info(f"Sending audio to Groq Whisper Transcriptions API ({file_size / 1024 / 1024:.1f} MB)...")
+                transcription = client.audio.transcriptions.create(
+                    file=audio_file,
+                    model=GROQ_WHISPER_MODEL,
+                    response_format="verbose_json",  # Required for timestamped segments
+                    language=lang_code,               # Force language code or use None for auto-detect
+                    prompt=tamil_prompt if lang_code == "ta" else None, # Guide Whisper if Tamil is selected
+                    temperature=0.0,                  # Force deterministic timings to prevent drift/hallucination
+                )
+                detected_language = getattr(transcription, "language", "unknown")
 
-        detected_language = getattr(transcription, "language", "unknown")
         raw_segments = getattr(transcription, "segments", []) or []
 
         segments = []
@@ -140,6 +156,7 @@ class GroqTranscriber:
         audio_path: str,
         on_progress=None,
         source_lang: str | None = "ta",
+        target_lang: str | None = None,
     ) -> list[dict]:
         """
         Async-safe wrapper around the Groq Whisper API.
@@ -159,6 +176,7 @@ class GroqTranscriber:
             self._transcribe_sync,
             audio_path,
             source_lang,
+            target_lang,
         )
 
         if on_progress:
