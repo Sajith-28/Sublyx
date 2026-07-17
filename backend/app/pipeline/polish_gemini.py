@@ -1,6 +1,7 @@
 import json
 import logging
 import requests
+import re
 from app.core.config import settings
 
 logger = logging.getLogger("captionai.polish_gemini")
