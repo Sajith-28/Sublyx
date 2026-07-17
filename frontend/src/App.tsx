@@ -430,12 +430,24 @@ const AppInner: React.FC = () => {
 
             <div className="flex items-center gap-2">
               <AnimatePresence>
+                {phase === "upload" && (
+                  <motion.button
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="flex items-center space-x-2 rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition-all duration-200 hover:bg-white/5 hover:text-white cursor-pointer"
+                    onClick={() => setPhase("dashboard")}
+                  >
+                    <ArrowLeft size={16} />
+                    <span className="hidden sm:inline">Back to Dashboard</span>
+                  </motion.button>
+                )}
                 {phase !== "upload" && (
                   <motion.button
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    className="flex items-center space-x-2 rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition-all duration-200 hover:bg-white/5 hover:text-white"
+                    className="flex items-center space-x-2 rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition-all duration-200 hover:bg-white/5 hover:text-white cursor-pointer"
                     onClick={startNewProject}
                   >
                     <ArrowLeft size={16} />
