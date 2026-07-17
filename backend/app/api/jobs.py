@@ -136,7 +136,8 @@ async def run_pipeline(
                 seg["caption_text"] = seg["raw_text"]
             
         # 4. Optional Gemini Polish Pass (Only if target is Tanglish)
-        if gemini_key and target_lang_lower == "tanglish":
+        effective_gemini_key = gemini_key or settings.GEMINI_API_KEY
+        if effective_gemini_key and target_lang_lower == "tanglish":
             await db_mgr.update_job(job_id, {"progress_pct": 90.0})
             logger.info(f"Job {job_id}: Polishing Tanglish text using Gemini...")
             # Run blocking HTTP post in a thread pool
@@ -144,7 +145,7 @@ async def run_pipeline(
                 None, 
                 polish_tanglish_gemini, 
                 processed_segments, 
-                gemini_key
+                effective_gemini_key
             )
             
         # 5. Insert segments and complete job
